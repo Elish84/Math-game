@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>משחק חשבון לכיתה א׳</title>
+  <style>
+    :root{
+      --bg:#0b1220; --card:#111b2e; --ink:#ffffff; --muted:#b9c2d6;
+      --accent:#2f6bff; --btn:#1a2742;
+      --good:#22c55e; --bad:#ef4444; --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:system-ui, -apple-system, Segoe UI, Arial;
+      background:linear-gradient(180deg,#070c16 0%, #0b1220 60%, #070c16 100%);
+      color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center;
+      padding:14px;
+    }
+    .wrap{width:min(820px,96vw)}
+    .topbar{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;
+      margin-bottom:10px;
+    }
+    .pill{
+      background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.10);
+      padding:8px 10px; border-radius:999px; color:var(--muted); font-size:14px;
+      display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    }
+    .card{
+      background:rgba(17,27,46,.92);
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px; padding:14px;
+      box-shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+    h1,h2{margin:0 0 10px 0}
+    .muted{color:var(--muted)}
+    .row{display:flex; gap:12px; flex-wrap:wrap}
+    .col{flex:1 1 280px}
+    .bigQ{
+      text-align:center;
+      font-size: clamp(52px, 8vw, 98px);
+      font-weight:900;
+      letter-spacing:1px;
+      padding:16px 10px;
+      margin:8px 0 6px 0;
+      border-radius:16px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+    }
+    .subline{
+      display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+      margin-top:8px;
+    }
+    .bar{
+      height:10px; border-radius:999px; overflow:hidden;
+      background:rgba(255,255,255,.08);
+      border:1px solid rgba(255,255,255,.10);
+      width:100%;
+    }
+    .bar > div{height:100%; width:0%;}
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2, minmax(0, 1fr));
+      gap:12px;
+      margin-top:12px;
+    }
+    .btn{
+      appearance:none; border:0; border-radius:14px; padding:12px 14px;
+      background:var(--btn); color:var(--ink); font-size:22px; font-weight:800;
+      cursor:pointer; width:100%;
+      border:1px solid rgba(255,255,255,.10);
+      transition:transform .05s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    .btn:hover{transform:translateY(-1px)}
+    .btn:active{transform:translateY(0px) scale(.99)}
+    .btn.primary{background:var(--accent)}
+    .btn.good{background:rgba(34,197,94,.18); border-color:rgba(34,197,94,.35)}
+    .btn.bad{background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.35)}
+    .tag{
+      padding:4px 10px; border-radius:999px; font-size:13px; font-weight:900;
+      border:1px solid rgba(255,255,255,.12);
+      background:rgba(255,255,255,.06);
+      white-space:nowrap;
+    }
+    .tag.good{border-color:rgba(34,197,94,.35); background:rgba(34,197,94,.15)}
+    .tag.bad{border-color:rgba(239,68,68,.35); background:rgba(239,68,68,.15)}
+    .tag.warn{border-color:rgba(245,158,11,.35); background:rgba(245,158,11,.15)}
+    .toast{
+      margin-top:10px;
+      padding:10px 12px;
+      border-radius:14px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      min-height:44px;
+      display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;
+    }
+    .hidden{display:none !important}
+    .select, .input{
+      width:100%;
+      background:rgba(255,255,255,.06);
+      color:var(--ink);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius:14px;
+      padding:12px 12px;
+      font-size:18px;
+      outline:none;
+    }
+    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; opacity:.85}
+    .list{margin:0; padding:0 18px 0 0; color:var(--muted)}
+    .divider{height:1px; background:rgba(255,255,255,.10); margin:12px 0}
+    .switchline{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:10px}
+    .checkbox{transform:scale(1.15); accent-color: var(--accent);}
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="topbar">
+    <div class="pill">
+      <span id="hello">👋 שלום!</span>
+      <span>🏁 שלב: <b id="stageIdx">—</b>/<b id="stageTotal">10</b></span>
+      <span>🧩 שאלה: <b id="turnIdx">—</b>/<b id="turnTotal">10</b></span>
+      <span>🎯 ניקוד: <b id="score">0</b></span>
+      <span>⏱️ זמן: <b id="timeLeft">—</b></span>
+    </div>
+    <div class="pill">
+      <span class="kbd">מקשים: 1–4 | רווח=דילוג</span>
+    </div>
+  </div>
+
+  <!-- LOGIN -->
+  <div class="card" id="screenLogin">
+    <h1 id="t_title">משחק חשבון לכיתה א׳</h1>
+    <p class="muted" id="t_subtitle">בחר שפה, הזן שם, והתחל לשחק 🎮</p>
+
+    <div class="row">
+      <div class="col">
+        <h2 id="t_lang">שפה</h2>
+        <select id="langSelect" class="select">
+          <option value="he" selected>עברית</option>
+          <option value="en">English</option>
+        </select>
+
+        <div class="divider"></div>
+
+        <h2 id="t_name">שם שחקן</h2>
+        <input id="playerName" class="input" placeholder="לדוגמה: דן" maxlength="18" />
+
+        <div class="switchline">
+          <input id="musicToggle" type="checkbox" class="checkbox" checked />
+          <label for="musicToggle" class="muted" id="t_music">מוזיקת רקע</label>
+        </div>
+
+        <div class="switchline">
+          <input id="sfxToggle" type="checkbox" class="checkbox" checked />
+          <label for="sfxToggle" class="muted" id="t_sfx">צלילים לתשובות</label>
+        </div>
+
+        <div style="margin-top:12px">
+          <button class="btn primary" id="enterBtn">כניסה למשחק</button>
+        </div>
+      </div>
+
+      <div class="col">
+        <h2 id="t_rules">איך זה עובד?</h2>
+        <ul class="list" id="t_rules_list">
+          <li><b>10 שלבים</b>, בכל שלב <b>10 שאלות</b> בדיוק.</li>
+          <li>שלבים 1–3: <b>חיבור</b> (סכום עד 12).</li>
+          <li>שלבים 4–6: <b>חיסור</b> (תוצאה לא שלילית).</li>
+          <li>שלבים 7–10: <b>חיבור + חיסור</b>.</li>
+          <li>זמן לשאלה משתנה: 10ש׳ → 6ש׳ → 3ש׳.</li>
+          <li>טעית? השאלה יכולה לחזור שוב בהמשך השלב (למידה מחזרת).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME -->
+  <div class="card hidden" id="screenGame">
+    <div id="stageTagLine" class="muted" style="margin-bottom:6px">—</div>
+
+    <div id="questionBox" class="bigQ">—</div>
+
+    <div class="subline">
+      <div style="flex:1 1 260px">
+        <div class="bar" title="זמן לשאלה"><div id="timeBar"></div></div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+        <span class="tag" id="modeTag">—</span>
+        <span class="tag warn" title="כמה שאלות מחכות לחזרה">חוזרות: <b id="repeatCount">0</b></span>
+        <span class="tag" id="speedTag">—</span>
+      </div>
+    </div>
+
+    <div class="grid" id="answersGrid">
+      <button class="btn" data-idx="0" id="ans0">—</button>
+      <button class="btn" data-idx="1" id="ans1">—</button>
+      <button class="btn" data-idx="2" id="ans2">—</button>
+      <button class="btn" data-idx="3" id="ans3">—</button>
+    </div>
+
+    <div class="toast">
+      <span id="toastText" class="muted">בחר תשובה</span>
+      <div style="display:flex; gap:10px; align-items:center">
+        <button class="btn" style="width:auto; padding:10px 12px; font-size:16px" id="skipBtn">דילוג</button>
+        <button class="btn" style="width:auto; padding:10px 12px; font-size:16px" id="quitBtn">צא</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAGE END -->
+  <div class="card hidden" id="screenStageEnd">
+    <h1 id="t_stage_done">סיימת שלב! 🥳</h1>
+    <p class="muted" id="stageSummary">—</p>
+
+    <div class="row">
+      <div class="col">
+        <button class="btn primary" id="nextStageBtn">לשלב הבא</button>
+      </div>
+      <div class="col">
+        <button class="btn" id="practiceMistakesBtn">תרגול טעויות</button>
+      </div>
+      <div class="col">
+        <button class="btn" id="backLoginBtn">חזרה למסך כניסה</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GAME END -->
+  <div class="card hidden" id="screenGameEnd">
+    <h1 id="t_game_done">כל הכבוד! סיימת את כל השלבים! 🏆</h1>
+    <p class="muted" id="gameSummary">—</p>
+    <div class="row">
+      <div class="col"><button class="btn primary" id="playAgainBtn">שחק שוב מההתחלה</button></div>
+      <div class="col"><button class="btn" id="backLoginBtn2">חזרה למסך כניסה</button></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+(() => {
+  // ---------------- i18n ----------------
+  const STR = {
+    he: {
+      title: "משחק חשבון לכיתה א׳",
+      subtitle: "בחר שפה, הזן שם, והתחל לשחק 🎮",
+      lang: "שפה",
+      name: "שם שחקן",
+      music: "מוזיקת רקע",
+      sfx: "צלילים לתשובות",
+      enter: "כניסה למשחק",
+      rules: "איך זה עובד?",
+      stageDone: "סיימת שלב! 🥳",
+      gameDone: "כל הכבוד! סיימת את כל השלבים! 🏆",
+      choose: "בחר תשובה",
+      correct: "✅ נכון! נקודה +1",
+      wrong: "❌ לא נכון. ננסה שוב בהמשך השלב",
+      timeout: "⏱️ נגמר הזמן! ננסה שוב בהמשך השלב",
+      skip: "⏭️ דילוג. ננסה שוב בהמשך השלב",
+      stage: (n)=>`שלב ${n}`,
+      q: (a,b)=>`שאלה ${a}/${b}`,
+      hello: (name)=>`👋 שלום, ${name}!`,
+      modeAdd: "חיבור",
+      modeSub: "חיסור",
+      modeMix: "חיבור+חיסור",
+      speed: (s)=>`⏱️ ${s}ש׳`,
+      stageLine: (n, mode)=>`שלב ${n} • מצב: ${mode}`,
+      stageSummary: (n, score, total, wrongCount)=>`שלב ${n}: ניקוד ${score}/${total}. טעויות/זמן שנגמר: ${wrongCount}.`,
+      gameSummary: (score, total)=>`ניקוד כולל: ${score}/${total}.`,
+      next: "לשלב הבא",
+      practice: "תרגול טעויות",
+      back: "חזרה למסך כניסה",
+      quit: "צא"
+    },
+    en: {
+      title: "Grade 1 Math Game",
+      subtitle: "Pick a language, enter your name, and play 🎮",
+      lang: "Language",
+      name: "Player name",
+      music: "Background music",
+      sfx: "Answer sounds",
+      enter: "Enter game",
+      rules: "How it works",
+      stageDone: "Stage complete! 🥳",
+      gameDone: "Awesome! You finished all stages! 🏆",
+      choose: "Pick an answer",
+      correct: "✅ Correct! +1 point",
+      wrong: "❌ Not quite. It may come back later this stage",
+      timeout: "⏱️ Time's up! It may come back later this stage",
+      skip: "⏭️ Skipped. It may come back later this stage",
+      stage: (n)=>`Stage ${n}`,
+      q: (a,b)=>`Question ${a}/${b}`,
+      hello: (name)=>`👋 Hi, ${name}!`,
+      modeAdd: "Addition",
+      modeSub: "Subtraction",
+      modeMix: "Add+Sub",
+      speed: (s)=>`⏱️ ${s}s`,
+      stageLine: (n, mode)=>`Stage ${n} • Mode: ${mode}`,
+      stageSummary: (n, score, total, wrongCount)=>`Stage ${n}: Score ${score}/${total}. Wrong/timeout: ${wrongCount}.`,
+      gameSummary: (score, total)=>`Total score: ${score}/${total}.`,
+      next: "Next stage",
+      practice: "Practice mistakes",
+      back: "Back to login",
+      quit: "Quit"
+    }
+  };
+
+  function setLang(lang){
+    const s = STR[lang];
+    const isHe = lang === 'he';
+    document.documentElement.lang = lang;
+    document.documentElement.dir = isHe ? 'rtl' : 'ltr';
+
+    // Login UI
+    el('t_title').textContent = s.title;
+    el('t_subtitle').textContent = s.subtitle;
+    el('t_lang').textContent = s.lang;
+    el('t_name').textContent = s.name;
+    el('t_music').textContent = s.music;
+    el('t_sfx').textContent = s.sfx;
+    el('enterBtn').textContent = s.enter;
+    el('t_rules').textContent = s.rules;
+    el('t_stage_done').textContent = s.stageDone;
+    el('t_game_done').textContent = s.gameDone;
+    el('quitBtn').textContent = s.quit;
+
+    el('nextStageBtn').textContent = s.next;
+    el('practiceMistakesBtn').textContent = s.practice;
+    el('backLoginBtn').textContent = s.back;
+    el('backLoginBtn2').textContent = s.back;
+    el('playAgainBtn').textContent = isHe ? "שחק שוב מההתחלה" : "Play again from start";
+
+    // Placeholder
+    el('playerName').placeholder = isHe ? "לדוגמה: דן" : "e.g. Dan";
+  }
+
+  // ---------------- Helpers ----------------
+  const el = (id) => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const randInt = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+  const shuffle = (arr) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+
+  function showScreen(which){
+    ['screenLogin','screenGame','screenStageEnd','screenGameEnd'].forEach(id=>el(id).classList.add('hidden'));
+    el(which).classList.remove('hidden');
+  }
+
+  // ---------------- Audio (no external files) ----------------
+  let audioCtx = null;
+  let musicTimer = null;
+  let musicOn = true;
+  let sfxOn = true;
+
+  function ensureAudio(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  }
+
+  // Cute background loop (simple arpeggio)
+  function startMusic(){
+    if(!musicOn) return;
+    ensureAudio();
+    stopMusic();
+
+    const bpm = 108;
+    const stepMs = (60000 / bpm) / 2; // eighth notes
+    const base = 220; // A3-ish
+    const scale = [0, 4, 7, 12, 7, 4]; // simple major triad arp
+    let i = 0;
+
+    musicTimer = setInterval(() => {
+      if(!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+
+      const freq = base * Math.pow(2, scale[i % scale.length] / 12);
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(freq, now);
+
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.03, now + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(now);
+      o.stop(now + 0.2);
+
+      i++;
+    }, stepMs);
+  }
+
+  function stopMusic(){
+    if(musicTimer){
+      clearInterval(musicTimer);
+      musicTimer = null;
+    }
+  }
+
+  // “Clap / fun” success sound
+  function sfxCorrect(){
+    if(!sfxOn) return;
+    ensureAudio();
+    const now = audioCtx.currentTime;
+
+    // short noise burst + pop
+    const bufferSize = Math.floor(audioCtx.sampleRate * 0.12);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      // decaying noise
+      data[i] = (Math.random()*2-1) * Math.exp(-i/(bufferSize/6));
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+
+    const bp = audioCtx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.value = 1600;
+    bp.Q.value = 1.2;
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.exponentialRampToValueAtTime(0.10, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    noise.connect(bp); bp.connect(g); g.connect(audioCtx.destination);
+    noise.start(now);
+    noise.stop(now + 0.13);
+
+    // tiny melodic “ding”
+    const o = audioCtx.createOscillator();
+    const g2 = audioCtx.createGain();
+    o.type = "sine";
+    o.frequency.setValueAtTime(880, now);
+    o.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+    g2.gain.setValueAtTime(0.001, now);
+    g2.gain.exponentialRampToValueAtTime(0.06, now + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+    o.connect(g2); g2.connect(audioCtx.destination);
+    o.start(now);
+    o.stop(now + 0.11);
+  }
+
+  // “Unpleasant” error sound
+  function sfxWrong(){
+    if(!sfxOn) return;
+    ensureAudio();
+    const now = audioCtx.currentTime;
+
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "sawtooth";
+    o.frequency.setValueAtTime(220, now);
+    o.frequency.exponentialRampToValueAtTime(120, now + 0.14);
+
+    g.gain.setValueAtTime(0.001, now);
+    g.gain.exponentialRampToValueAtTime(0.08, now + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+    const lp = audioCtx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 900;
+
+    o.connect(lp); lp.connect(g); g.connect(audioCtx.destination);
+    o.start(now);
+    o.stop(now + 0.18);
+  }
+
+  // ---------------- Game Config ----------------
+  const TOTAL_STAGES = 10;
+  const TURNS_PER_STAGE = 10;
+
+  function stageMode(stage){
+    // 1-3 add, 4-6 sub, 7-10 mix
+    if(stage <= 3) return 'add';
+    if(stage <= 6) return 'sub';
+    return 'mix';
+  }
+
+  function stageSeconds(stage){
+    // 1-4: 10s, 5-7: 6s, 8-10: 3s
+    if(stage <= 4) return 10;
+    if(stage <= 7) return 6;
+    return 3;
+  }
+
+  function stageAddMaxSum(stage){
+    // early add only stages keep <=12; later allow up to 18 (since 0-9 + 0-9)
+    return (stage <= 3) ? 12 : 18;
+  }
+
+  // ---------------- State ----------------
+  let state = {
+    lang: 'he',
+    player: 'שחקן',
+    stage: 1,
+    turn: 1,
+    scoreStage: 0,
+    scoreTotal: 0,
+    wrongThisStage: 0,
+    timer: null,
+    timeLeftMs: 0,
+    allowInput: true,
+
+    current: null,
+    baseQueue: [],
+    mistakesPool: [], // questions to repeat within stage turns
+    seenKeys: new Set(),
+    practiceMode: false, // if true, stage becomes endless practice of mistakes
+  };
+
+  function modeLabel(mode){
+    const s = STR[state.lang];
+    if(mode === 'add') return s.modeAdd;
+    if(mode === 'sub') return s.modeSub;
+    return s.modeMix;
+  }
+
+  // ---------------- Question Generation ----------------
+  function makeQuestionForStage(stage){
+    const mode = stageMode(stage);
+    let a=0,b=0,op='+',answer=0;
+    const maxSum = stageAddMaxSum(stage);
+
+    if(mode === 'add'){
+      op = '+';
+      a = randInt(0,9);
+      b = randInt(0,9);
+      let tries=0;
+      while(a+b > maxSum && tries < 60){
+        a = randInt(0,9); b = randInt(0,9); tries++;
+      }
+      if(a+b > maxSum) b = clamp(maxSum - a, 0, 9);
+      answer = a + b;
+    } else if(mode === 'sub'){
+      op = '−';
+      a = randInt(0,9);
+      b = randInt(0,9);
+      if(b > a) [a,b] = [b,a];
+      answer = a - b;
+    } else { // mix
+      const pickAdd = Math.random() < 0.5;
+      if(pickAdd){
+        op = '+';
+        a = randInt(0,9);
+        b = randInt(0,9);
+        let tries=0;
+        while(a+b > maxSum && tries < 60){
+          a = randInt(0,9); b = randInt(0,9); tries++;
+        }
+        if(a+b > maxSum) b = clamp(maxSum - a, 0, 9);
+        answer = a + b;
+      } else {
+        op = '−';
+        a = randInt(0,9);
+        b = randInt(0,9);
+        if(b > a) [a,b] = [b,a];
+        answer = a - b;
+      }
+    }
+
+    const q = {
+      a,b,op,answer,
+      text: `${a} ${op} ${b}`,
+      key: `${a}${op}${b}`, // simple key
+      options: [],
+      attempts: 0
+    };
+    return q;
+  }
+
+  function makeOptions(correct){
+    const set = new Set([correct]);
+    const opts = [correct];
+    const deltas = shuffle([-3,-2,-1,1,2,3,4,-4,5,-5]);
+
+    for(const d of deltas){
+      if(opts.length >= 4) break;
+      const cand = correct + d;
+      if(cand < 0 || cand > 18) continue;
+      if(!set.has(cand)){ set.add(cand); opts.push(cand); }
+    }
+
+    while(opts.length < 4){
+      const cand = randInt(0, 18);
+      if(!set.has(cand)){ set.add(cand); opts.push(cand); }
+    }
+    return shuffle(opts);
+  }
+
+  function buildStageQueues(){
+    state.baseQueue = [];
+    state.mistakesPool = [];
+    state.seenKeys = new Set();
+
+    // build 10 unique-ish base questions
+    let guard=0;
+    while(state.baseQueue.length < TURNS_PER_STAGE && guard < 600){
+      const q = makeQuestionForStage(state.stage);
+      if(!state.seenKeys.has(q.key)){
+        state.seenKeys.add(q.key);
+        state.baseQueue.push(q);
+      }
+      guard++;
+    }
+    while(state.baseQueue.length < TURNS_PER_STAGE){
+      state.baseQueue.push(makeQuestionForStage(state.stage));
+    }
+  }
+
+  // ---------------- UI Updates ----------------
+  function paintTimeBar(ratio){
+    const pct = clamp(ratio, 0, 1) * 100;
+    el('timeBar').style.width = pct.toFixed(1) + '%';
+    if(pct > 50) el('timeBar').style.background = 'rgba(255,255,255,.28)';
+    else if(pct > 20) el('timeBar').style.background = 'rgba(255,255,255,.20)';
+    else el('timeBar').style.background = 'rgba(255,255,255,.14)';
+  }
+
+  function updateTop(){
+    const s = STR[state.lang];
+    el('hello').textContent = s.hello(state.player);
+    el('stageIdx').textContent = String(state.stage);
+    el('stageTotal').textContent = String(TOTAL_STAGES);
+    el('turnIdx').textContent = String(state.turn);
+    el('turnTotal').textContent = String(TURNS_PER_STAGE);
+    el('score').textContent = String(state.scoreTotal);
+    el('repeatCount').textContent = String(state.mistakesPool.length);
+    el('timeLeft').textContent = (state.timeLeftMs>0) ? String(Math.ceil(state.timeLeftMs/1000)) : '—';
+
+    const mode = stageMode(state.stage);
+    el('modeTag').textContent = modeLabel(mode);
+
+    const secs = stageSeconds(state.stage);
+    el('speedTag').textContent = s.speed(secs);
+
+    el('stageTagLine').textContent = s.stageLine(state.stage, modeLabel(mode));
+  }
+
+  function toast(msg){
+    el('toastText').textContent = msg;
+  }
+
+  function setAnswers(options){
+    for(let i=0;i<4;i++){
+      const b = el('ans'+i);
+      b.textContent = String(options[i]);
+      b.classList.remove('good','bad');
+      b.disabled = false;
+    }
+  }
+
+  function lockInput(lock){
+    state.allowInput = !lock;
+    for(let i=0;i<4;i++) el('ans'+i).disabled = lock;
+    el('skipBtn').disabled = lock;
+  }
+
+  // ---------------- Timer ----------------
+  function stopTimer(){
+    if(state.timer){
+      clearInterval(state.timer);
+      state.timer = null;
+    }
+  }
+
+  function startTimer(seconds){
+    stopTimer();
+    const totalMs = seconds * 1000;
+    state.timeLeftMs = totalMs;
+    paintTimeBar(1);
+    updateTop();
+
+    state.timer = setInterval(() => {
+      state.timeLeftMs -= 100;
+      const left = Math.max(0, state.timeLeftMs);
+      paintTimeBar(left/totalMs);
+      el('timeLeft').textContent = String(Math.ceil(left/1000));
+      if(left <= 0){
+        stopTimer();
+        onTimeout();
+      }
+    }, 100);
+  }
+
+  // ---------------- Stage Flow (10 turns exactly) ----------------
+  function pickNextQuestion(){
+    // practice mode: always from mistakes if exist, else end practice
+    if(state.practiceMode){
+      if(state.mistakesPool.length === 0){
+        return null;
+      }
+      return state.mistakesPool.shift();
+    }
+
+    // within fixed 10 turns:
+    // prefer mistakes sometimes so they can repeat inside the stage
+    if(state.mistakesPool.length > 0 && Math.random() < 0.55){
+      return state.mistakesPool.shift();
+    }
+    // otherwise take next base question for this turn index
+    return state.baseQueue[state.turn - 1];
+  }
+
+  function renderTurn(){
+    const q = pickNextQuestion();
+    if(!q){
+      // end practice
+      return showStageEnd(true);
+    }
+    state.current = q;
+    q.attempts = (q.attempts || 0);
+
+    el('questionBox').textContent = q.text;
+    q.options = makeOptions(q.answer);
+    setAnswers(q.options);
+
+    toast(STR[state.lang].choose);
+    lockInput(false);
+
+    startTimer(stageSeconds(state.stage));
+    updateTop();
+  }
+
+  function markButtons(correctValue, chosenValue){
+    for(let i=0;i<4;i++){
+      const b = el('ans'+i);
+      const val = Number(b.textContent);
+      if(val === correctValue) b.classList.add('good');
+      if(val === chosenValue && chosenValue !== correctValue) b.classList.add('bad');
+    }
+  }
+
+  function addMistake(q){
+    // cap repeats so it won't dominate
+    if((q.attempts || 0) >= 5) return;
+    // push a shallow copy to avoid option mismatch issues
+    state.mistakesPool.push({ ...q, options: [], attempts: q.attempts || 0 });
+  }
+
+  function onAnswer(idx){
+    if(!state.allowInput) return;
+    const s = STR[state.lang];
+    const q = state.current;
+    const chosen = q.options[idx];
+
+    stopTimer();
+    lockInput(true);
+
+    const ok = chosen === q.answer;
+    q.attempts++;
+
+    markButtons(q.answer, chosen);
+
+    if(ok){
+      state.scoreStage += 1;
+      state.scoreTotal += 1;
+      sfxCorrect();
+      toast(s.correct);
+
+      setTimeout(() => nextAfterAnswer(), 600);
+    } else {
+      state.wrongThisStage += 1;
+      sfxWrong();
+      toast(s.wrong);
+      addMistake(q);
+
+      setTimeout(() => nextAfterAnswer(), 850);
+    }
+    updateTop();
+  }
+
+  function onTimeout(){
+    if(!state.allowInput) return;
+    const s = STR[state.lang];
+    const q = state.current;
+
+    lockInput(true);
+    state.wrongThisStage += 1;
+    sfxWrong();
+    toast(s.timeout);
+    q.attempts = (q.attempts || 0) + 1;
+    addMistake(q);
+
+    setTimeout(() => nextAfterAnswer(), 850);
+    updateTop();
+  }
+
+  function onSkip(){
+    if(!state.allowInput) return;
+    const s = STR[state.lang];
+    stopTimer();
+    lockInput(true);
+
+    state.wrongThisStage += 1;
+    sfxWrong();
+    toast(s.skip);
+
+    const q = state.current;
+    q.attempts = (q.attempts || 0) + 1;
+    addMistake(q);
+
+    setTimeout(() => nextAfterAnswer(), 750);
+    updateTop();
+  }
+
+  function nextAfterAnswer(){
+    lockInput(false);
+
+    if(state.practiceMode){
+      // practice doesn't advance turn counter; just keep going until mistakes empty
+      renderTurn();
+      return;
+    }
+
+    if(state.turn >= TURNS_PER_STAGE){
+      showStageEnd(false);
+      return;
+    }
+
+    state.turn += 1;
+    renderTurn();
+  }
+
+  function showStageEnd(fromPractice){
+    stopTimer();
+    showScreen('screenStageEnd');
+
+    const s = STR[state.lang];
+    el('t_stage_done').textContent = s.stageDone;
+
+    const wrongCount = state.wrongThisStage;
+    el('stageSummary').textContent = s.stageSummary(state.stage, state.scoreStage, TURNS_PER_STAGE, wrongCount);
+
+    // practice button enabled only if there are mistakes to practice
+    el('practiceMistakesBtn').disabled = state.mistakesPool.length === 0;
+    el('practiceMistakesBtn').style.opacity = state.mistakesPool.length === 0 ? 0.55 : 1;
+
+    // next stage button disabled if game finished
+    if(state.stage >= TOTAL_STAGES){
+      el('nextStageBtn').disabled = true;
+      el('nextStageBtn').style.opacity = 0.55;
+    } else {
+      el('nextStageBtn').disabled = false;
+      el('nextStageBtn').style.opacity = 1;
+    }
+
+    if(fromPractice){
+      // after practice, allow continuing next stage as usual
+      // (no special handling needed)
+    }
+  }
+
+  function startStage(stageNumber){
+    state.stage = stageNumber;
+    state.turn = 1;
+    state.scoreStage = 0;
+    state.wrongThisStage = 0;
+    state.practiceMode = false;
+
+    buildStageQueues();
+
+    showScreen('screenGame');
+    updateTop();
+    renderTurn();
+  }
+
+  function finishGame(){
+    stopTimer();
+    showScreen('screenGameEnd');
+    const s = STR[state.lang];
+    el('t_game_done').textContent = s.gameDone;
+    el('gameSummary').textContent = s.gameSummary(state.scoreTotal, TOTAL_STAGES * TURNS_PER_STAGE);
+  }
+
+  // ---------------- Wiring ----------------
+  el('langSelect').addEventListener('change', () => {
+    state.lang = el('langSelect').value;
+    setLang(state.lang);
+  });
+
+  el('enterBtn').addEventListener('click', async () => {
+    state.lang = el('langSelect').value;
+    setLang(state.lang);
+
+    const name = (el('playerName').value || '').trim();
+    state.player = name || (state.lang === 'he' ? 'שחקן' : 'Player');
+
+    musicOn = el('musicToggle').checked;
+    sfxOn = el('sfxToggle').checked;
+
+    // start audio only after a user gesture
+    if(musicOn){
+      ensureAudio();
+      try { await audioCtx.resume(); } catch(e){}
+      startMusic();
+    }
+
+    // reset totals
+    state.scoreTotal = 0;
+
+    startStage(1);
+  });
+
+  el('quitBtn').addEventListener('click', () => {
+    stopTimer();
+    stopMusic();
+    showScreen('screenLogin');
+  });
+
+  el('skipBtn').addEventListener('click', onSkip);
+
+  for(let i=0;i<4;i++){
+    el('ans'+i).addEventListener('click', () => onAnswer(i));
+  }
+
+  window.addEventListener('keydown', (e) => {
+    if(el('screenGame').classList.contains('hidden')) return;
+    if(e.key === '1') onAnswer(0);
+    if(e.key === '2') onAnswer(1);
+    if(e.key === '3') onAnswer(2);
+    if(e.key === '4') onAnswer(3);
+    if(e.key === ' '){ e.preventDefault(); onSkip(); }
+  });
+
+  el('nextStageBtn').addEventListener('click', () => {
+    if(state.stage >= TOTAL_STAGES){
+      finishGame();
+      return;
+    }
+    startStage(state.stage + 1);
+  });
+
+  el('practiceMistakesBtn').addEventListener('click', () => {
+    if(state.mistakesPool.length === 0) return;
+
+    // enter practice mode: keep repeating mistakes until empty (no timer change)
+    state.practiceMode = true;
+    showScreen('screenGame');
+    updateTop();
+    renderTurn();
+  });
+
+  function backToLogin(){
+    stopTimer();
+    stopMusic();
+    showScreen('screenLogin');
+  }
+  el('backLoginBtn').addEventListener('click', backToLogin);
+  el('backLoginBtn2').addEventListener('click', backToLogin);
+
+  el('playAgainBtn').addEventListener('click', async () => {
+    // keep settings
+    musicOn = el('musicToggle').checked;
+    sfxOn = el('sfxToggle').checked;
+
+    if(musicOn){
+      ensureAudio();
+      try { await audioCtx.resume(); } catch(e){}
+      startMusic();
+    }
+    state.scoreTotal = 0;
+    startStage(1);
+  });
+
+  // init
+  state.lang = 'he';
+  setLang('he');
+  showScreen('screenLogin');
+})();
+</script>
+</body>
+</html>
